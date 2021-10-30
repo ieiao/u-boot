@@ -1,0 +1,32 @@
+menu "Loongson platforms"
+	depends on ARCH_LOONGSON
+
+config SYS_TEXT_BASE
+	default 0x80000000
+
+choice
+	prompt "Loongson SoC select"
+
+config LS1C
+	bool "Loongson ls1c"
+	select SUPPORTS_CPU_MIPS32_R1
+	select SUPPORTS_CPU_MIPS32_R2
+	help
+	  This supports Loongson ls1c SoC.
+
+endchoice
+
+choice
+	prompt "Board select"
+
+config TARGET_LS1C_GENERIC
+	bool "ls1c generic board"
+	depends on LS1C
+	help
+	  This supports ls1c generic board.
+
+endchoice
+
+source "board/loongson/ls1c_generic/Kconfig"
+
+endmenu

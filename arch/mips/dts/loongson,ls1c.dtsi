@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-2.0
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "loongson,ls1c-soc";
+
+	watchdog: watchdog@bfe5c060 {
+		compatible = "loongson,ls1c-wdt";
+		reg = <0xbfe5c060 0x10>;
+	};
+
+	wdt-reboot {
+		compatible = "wdt-reboot";
+		wdt = <&watchdog>;
+	};
+
+	uart0: uart@bfe40000 {
+		compatible = "ns16550a";
+		reg = <0xbfe40000 0x100>;
+		clock-frequency = <120000000>;
+		reg-shift = <0>;
+	};
+
+	spi0: spi@bfe80000 {
+		compatible = "loongson,loongson-spi";
+		reg = <0xbfe80000 0x10>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+};

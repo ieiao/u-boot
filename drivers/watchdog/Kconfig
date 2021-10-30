@@ -295,6 +295,13 @@ config WDT_XILINX
 	  Select this to enable Xilinx window watchdog timer, which can be found on
 	  Xilinx Versal Platforms.
 
+config WDT_LS1C
+	bool "Loongson LS1C watchdog timer support"
+	depends on WDT && LS1C
+	help
+	  Select this to enable watchdog timer on Loongson LS1C and earlier
+	  SoC chips.
+
 config WDT_TANGIER
 	bool "Intel Tangier watchdog timer support"
 	depends on WDT && INTEL_MID

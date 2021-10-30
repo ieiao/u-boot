@@ -1,0 +1,20 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
+
+#include "loongson_common.h"
+
+#define CONFIG_SYS_MIPS_TIMER_FREQ	240000000
+
+#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_TEXT_BASE
+
+//#define CONFIG_SYS_MALLOC_LEN		0x100000
+#define CONFIG_SYS_BOOTPARAMS_LEN	0x20000
+
+#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CONFIG_SYS_LOAD_ADDR		0x80200000
+
+#define CONFIG_SYS_INIT_SP_OFFSET	0x400000
+
+#endif /* __CONFIG_H__ */

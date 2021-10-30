@@ -1,0 +1,6 @@
+LS1C_GENERIC BOARD
+M:	liweihao <liweihao@loongson.cn>
+S:	Maintained
+F:	board/loongson/ls1c_generic/
+F:	include/configs/loongson_ls1c.h
+F:	configs/loongson_ls1c_defconfig
