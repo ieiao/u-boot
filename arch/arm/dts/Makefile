@@ -73,6 +73,7 @@ dtb-$(CONFIG_ROCKCHIP_RK3368) += \
 	rk3368-sheep.dtb \
 	rk3368-geekbox.dtb \
 	rk3368-px5-evb.dtb \
+	rk3368-ymd8-mb.dtb
 
 dtb-$(CONFIG_ARCH_S5P4418) += \
 	s5p4418-nanopi2.dtb

@@ -21,6 +21,11 @@ config TARGET_EVB_PX5
          HDMI video input/output interface, audio codec ES8396,
          WIFI/BT (on RTL8723BS), Gsensor BMA250E and light&proximity
          sensor STK3410.
+
+config TARGET_YMD8_MB
+	select BOARD_EARLY_INIT_R
+	bool "YMD8_MB board"
+
 endchoice
 
 config ROCKCHIP_BOOT_MODE_REG
@@ -44,6 +49,7 @@ config SPL_LIBGENERIC_SUPPORT
 source "board/rockchip/sheep_rk3368/Kconfig"
 source "board/geekbuying/geekbox/Kconfig"
 source "board/rockchip/evb_px5/Kconfig"
+source "board/rockchip/ymd8_mb/Kconfig"
 
 config SPL_STACK_R_ADDR
 	default 0x04000000

@@ -1,0 +1,12 @@
+if TARGET_YMD8_MB
+
+config SYS_BOARD
+	default "ymd8_mb"
+
+config SYS_VENDOR
+	default "rockchip"
+
+config SYS_CONFIG_NAME
+	default "ymd8_mb"
+
+endif
