@@ -1,0 +1,6 @@
+RK3368 YMD8_MB Board
+M:	Weihao Li <cn.liweihao@gmail.com>
+S:	Maintained
+F:	board/rockchip/ymd8_mb_rk3368/
+F:	include/configs/ymd8_mb.h
+F:	configs/ymd8-mb_defconfig
