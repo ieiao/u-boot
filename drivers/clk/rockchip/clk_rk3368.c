@@ -329,11 +329,9 @@ static ulong rk3368_gmac_set_clk(struct rk3368_cru *cru, ulong set_rate)
 		ulong pll_rate;
 		u8 div;
 
-		if (((con >> GMAC_PLL_SHIFT) & GMAC_PLL_MASK) ==
-		    GMAC_PLL_SELECT_GENERAL)
+		if ((con & GMAC_PLL_MASK) == GMAC_PLL_SELECT_GENERAL)
 			pll_rate = GPLL_HZ;
-		else if (((con >> GMAC_PLL_SHIFT) & GMAC_PLL_MASK) ==
-			 GMAC_PLL_SELECT_CODEC)
+		else if ((con & GMAC_PLL_MASK) == GMAC_PLL_SELECT_CODEC)
 			pll_rate = CPLL_HZ;
 		else
 			/* CPLL is not set */
