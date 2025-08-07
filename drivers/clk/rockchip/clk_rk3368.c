@@ -534,11 +534,13 @@ static ulong rk3368_clk_get_rate(struct clk *clk)
 
 	debug("%s: id %ld\n", __func__, clk->id);
 	switch (clk->id) {
+	case PLL_APLLB:
+	case PLL_APLLL:
+	case PLL_DPLL:
 	case PLL_CPLL:
-		rate = rkclk_pll_get_rate(priv->cru, CPLL);
-		break;
 	case PLL_GPLL:
-		rate = rkclk_pll_get_rate(priv->cru, GPLL);
+	case PLL_NPLL:
+		rate = rkclk_pll_get_rate(priv->cru, clk->id - 1);
 		break;
 	case SCLK_SPI0 ... SCLK_SPI2:
 		rate = rk3368_spi_get_clk(priv->cru, clk->id);
