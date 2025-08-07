@@ -31,9 +31,27 @@ struct rk3368_clk_plat {
 #endif
 
 struct pll_div {
+	ulong rate;
 	u32 nr;
 	u32 nf;
 	u32 no;
+	u32 nb;
+};
+
+#define RK3368_PLL_RATE(_rate, _nr, _nf, _no, _nb)	\
+{							\
+	.rate	= _rate##U,				\
+	.nr = _nr,					\
+	.nf = _nf,					\
+	.no = _no,					\
+	.nb = _nb,					\
+}
+
+static struct pll_div rk3368_pll_rates[] = {
+	/* _mhz,  _nr, _nf, _no, _nb */
+	RK3368_PLL_RATE(594000000, 1, 99, 4, 16),
+	RK3368_PLL_RATE(424200000, 5, 707, 8, 0),
+	RK3368_PLL_RATE(410000000, 3, 205, 4, 16),
 };
 
 #define OSC_HZ		(24 * 1000 * 1000)
@@ -41,6 +59,7 @@ struct pll_div {
 #define APLL_B_HZ	(816 * 1000 * 1000)
 #define GPLL_HZ		(576 * 1000 * 1000)
 #define CPLL_HZ		(400 * 1000 * 1000)
+#define NPLL_HZ		(594 * 1000 * 1000)
 
 #define DIV_TO_RATE(input_rate, div)    ((input_rate) / ((div) + 1))
 
@@ -60,6 +79,105 @@ static const struct pll_div cpll_init_cfg = PLL_DIVISORS(CPLL_HZ, 1, 6);
 #endif
 
 static ulong rk3368_clk_get_rate(struct clk *clk);
+
+#define VCO_MAX_KHZ	2200000
+#define VCO_MIN_KHZ	440000
+#define FREF_MAX_KHZ	2200000
+#define FREF_MIN_KHZ	269
+#define PLL_LIMIT_FREQ	400000000
+
+struct pll_div *rkclk_get_pll_config(ulong freq_hz)
+{
+	unsigned int rate_count = ARRAY_SIZE(rk3368_pll_rates);
+	int i;
+
+	for (i = 0; i < rate_count; i++) {
+		if (freq_hz == rk3368_pll_rates[i].rate)
+			return &rk3368_pll_rates[i];
+	}
+	return NULL;
+}
+
+static int pll_para_config(ulong freq_hz, struct pll_div *div, uint *ext_div)
+{
+	struct pll_div *best_div = NULL;
+	uint ref_khz = OSC_HZ / 1000, nr, nf = 0;
+	uint fref_khz;
+	uint diff_khz, best_diff_khz;
+	const uint max_nr = 1 << 6, max_nf = 1 << 12, max_no = 1 << 4;
+	uint vco_khz;
+	uint no = 1;
+	uint freq_khz = freq_hz / 1000;
+
+	if (!freq_hz) {
+		printf("%s: the frequency can not be 0 Hz\n", __func__);
+		return -EINVAL;
+	}
+
+	no = DIV_ROUND_UP(VCO_MIN_KHZ, freq_khz);
+	if (ext_div) {
+		*ext_div = DIV_ROUND_UP(PLL_LIMIT_FREQ, freq_hz);
+		no = DIV_ROUND_UP(no, *ext_div);
+	}
+
+	best_div = rkclk_get_pll_config(freq_hz * (*ext_div));
+	if (best_div) {
+		div->nr = best_div->nr;
+		div->nf = best_div->nf;
+		div->no = best_div->no;
+		div->nb = best_div->nb;
+		return 0;
+	}
+
+	/* only even divisors (and 1) are supported */
+	if (no > 1)
+		no = DIV_ROUND_UP(no, 2) * 2;
+
+	vco_khz = freq_khz * no;
+	if (ext_div)
+		vco_khz *= *ext_div;
+
+	if (vco_khz < VCO_MIN_KHZ || vco_khz > VCO_MAX_KHZ || no > max_no) {
+		printf("%s: Cannot find out VCO for Frequency (%luHz).\n",
+		       __func__, freq_hz);
+		return -1;
+	}
+
+	div->no = no;
+
+	best_diff_khz = vco_khz;
+	for (nr = 1; nr < max_nr && best_diff_khz; nr++) {
+		fref_khz = ref_khz / nr;
+		if (fref_khz < FREF_MIN_KHZ)
+			break;
+		if (fref_khz > FREF_MAX_KHZ)
+			continue;
+
+		nf = vco_khz / fref_khz;
+		if (nf >= max_nf)
+			continue;
+		diff_khz = vco_khz - nf * fref_khz;
+		if (nf + 1 < max_nf && diff_khz > fref_khz / 2) {
+			nf++;
+			diff_khz = fref_khz - diff_khz;
+		}
+
+		if (diff_khz >= best_diff_khz)
+			continue;
+
+		best_diff_khz = diff_khz;
+		div->nr = nr;
+		div->nf = nf;
+	}
+
+	if (best_diff_khz > 4 * 1000) {
+		printf("%s:Fail to match output freq %lu,best_is %u Hz\n",
+		       __func__, freq_hz, best_diff_khz * 1000);
+		return -EINVAL;
+	}
+
+	return 0;
+}
 
 /* Get pll rate by id */
 static uint32_t rkclk_pll_get_rate(struct rk3368_cru *cru,
@@ -525,6 +643,104 @@ static ulong rk3368_bus_set_clk(struct rk3368_cru *cru,
 	}
 	return rk3368_bus_get_clk(cru, clk_id);
 }
+
+static ulong rk3368_vop_get_clk(struct rk3368_cru *cru,  int clk_id)
+{
+	u32 div, con, parent, sel;
+
+	switch (clk_id) {
+	case DCLK_VOP:
+		con = readl(&cru->clksel_con[20]);
+		div = con & DCLK_VOP_DIV_MASK;
+		parent = rkclk_pll_get_rate(cru, NPLL);
+		break;
+	case ACLK_VOP:
+		con = readl(&cru->clksel_con[19]);
+		div = con & ACLK_VOP_DIV_MASK;
+		sel =  (con & (ACLK_VOP_PLL_SEL_MASK <<
+			ACLK_VOP_PLL_SEL_SHIFT)) >>
+			ACLK_VOP_PLL_SEL_SHIFT;
+		if (sel == ACLK_VOP_PLL_SEL_CPLL)
+			parent = rkclk_pll_get_rate(cru, CPLL);
+		else if (ACLK_VOP_PLL_SEL_GPLL)
+			parent = rkclk_pll_get_rate(cru, GPLL);
+		else
+			parent = 480000000;
+		break;
+	case HCLK_VOP:
+		parent = rk3368_vop_get_clk(cru, ACLK_VOP);
+		con = readl(&cru->clksel_con[21]);
+		div = con & HCLK_VOP_DIV_MASK;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return DIV_TO_RATE(parent, div);
+}
+
+static ulong rk3368_vop_set_clk(struct rk3368_cru *cru, int clk_id, uint hz)
+{
+	struct pll_div npll_config = {0};
+	u32 lcdc_div;
+	int ret;
+
+	switch (clk_id) {
+	case DCLK_VOP:
+		if (!(NPLL_HZ % hz)) {
+			rkclk_set_pll(cru, NPLL, rkclk_get_pll_config(NPLL_HZ));
+			lcdc_div = NPLL_HZ / hz;
+		} else {
+			ret = pll_para_config(hz, &npll_config, &lcdc_div);
+			if (ret)
+				return ret;
+
+			rkclk_set_pll(cru, NPLL, &npll_config);
+		}
+		/* vop dclk source clk: npll,dclk_div: 1 */
+		rk_clrsetreg(&cru->clksel_con[20],
+			     (DCLK_VOP_PLL_SEL_MASK << DCLK_VOP_PLL_SEL_SHIFT) |
+			     (DCLK_VOP_DIV_MASK << DCLK_VOP_DIV_SHIFT),
+			     (DCLK_VOP_PLL_SEL_NPLL << DCLK_VOP_PLL_SEL_SHIFT) |
+			     (lcdc_div - 1) << DCLK_VOP_DIV_SHIFT);
+		break;
+	case ACLK_VOP:
+		if ((rkclk_pll_get_rate(cru, CPLL) % hz) == 0) {
+			lcdc_div = rkclk_pll_get_rate(cru, CPLL) / hz;
+			rk_clrsetreg(&cru->clksel_con[19],
+				     (ACLK_VOP_PLL_SEL_MASK <<
+				     ACLK_VOP_PLL_SEL_SHIFT) |
+				     (ACLK_VOP_DIV_MASK <<
+				     ACLK_VOP_DIV_SHIFT),
+				     (ACLK_VOP_PLL_SEL_CPLL <<
+				     ACLK_VOP_PLL_SEL_SHIFT) |
+				     (lcdc_div - 1) <<
+				     ACLK_VOP_DIV_SHIFT);
+		} else {
+			lcdc_div = rkclk_pll_get_rate(cru, GPLL) / hz;
+			rk_clrsetreg(&cru->clksel_con[19],
+				     (ACLK_VOP_PLL_SEL_MASK <<
+				     ACLK_VOP_PLL_SEL_SHIFT) |
+				     (ACLK_VOP_DIV_MASK <<
+				     ACLK_VOP_DIV_SHIFT),
+				     (ACLK_VOP_PLL_SEL_GPLL <<
+				     ACLK_VOP_PLL_SEL_SHIFT) |
+				     (lcdc_div - 1) <<
+				     ACLK_VOP_DIV_SHIFT);
+		}
+		break;
+	case HCLK_VOP:
+		lcdc_div = rk3368_vop_get_clk(cru, ACLK_VOP) / hz;
+		rk_clrsetreg(&cru->clksel_con[21],
+			     HCLK_VOP_DIV_MASK,
+			     (lcdc_div - 1) << HCLK_VOP_DIV_SHIFT);
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return rk3368_vop_get_clk(cru, clk_id);
+}
 #endif
 
 static ulong rk3368_clk_get_rate(struct clk *clk)
@@ -565,6 +781,13 @@ static ulong rk3368_clk_get_rate(struct clk *clk)
 	case SCLK_SARADC:
 		rate = rk3368_saradc_get_clk(priv->cru);
 		break;
+#if !IS_ENABLED(CONFIG_XPL_BUILD)
+	case ACLK_VOP:
+	case DCLK_VOP:
+	case HCLK_VOP:
+		rate = rk3368_vop_get_clk(priv->cru, clk->id);
+		break;
+#endif
 	default:
 		return -ENOENT;
 	}
@@ -609,6 +832,13 @@ static ulong rk3368_clk_set_rate(struct clk *clk, ulong rate)
 	case SCLK_SARADC:
 		ret =  rk3368_saradc_set_clk(priv->cru, rate);
 		break;
+#if !defined(CONFIG_XPL_BUILD)
+	case ACLK_VOP:
+	case DCLK_VOP:
+	case HCLK_VOP:
+		ret = rk3368_vop_set_clk(priv->cru, clk->id, rate);
+		break;
+#endif
 	default:
 		return -ENOENT;
 	}

@@ -77,11 +77,99 @@ struct rk3368_grf {
 	u32 soc_con15;
 	u32 soc_con16;
 	u32 soc_con17;
-	u32 reserved5[0x6e];
+	u32 reserved5[0xe];
+	u32 soc_status0;
+	u32 soc_status1;
+	u32 soc_status2;
+	u32 soc_status3;
+	u32 soc_status4;
+	u32 soc_status5;
+	u32 soc_status6;
+	u32 soc_status7;
+	u32 soc_status8;
+	u32 soc_status9;
+	u32 soc_status10;
+	u32 soc_status11;
+	u32 soc_status12;
+	u32 soc_status13;
+	u32 soc_status14;
+	u32 soc_status15;
+	u32 reserved6[0x10];
+	u32 cpu_con0;
+	u32 cpu_con1;
+	u32 cpu_con2;
+	u32 cpu_con3;
+	u32 reserved7[0x4];
+	u32 cpu_status0;
+	u32 cpu_status1;
+	u32 reserved8[0x6];
+	u32 cci_status0;
+	u32 cci_status1;
+	u32 cci_status2;
+	u32 cci_status3;
+	u32 cci_status4;
+	u32 cci_status5;
+	u32 cci_status6;
+	u32 cci_status7;
+	u32 cci_status8;
+	u32 cci_status9;
+	u32 cci_status10;
+	u32 cci_status11;
+	u32 cci_status12;
+	u32 cci_status13;
+	u32 cci_status14;
+	u32 cci_status15;
+	u32 reserved9[0x20];
 	u32 ddrc0_con0;
+	u32 reserved10[0x1f];
+	u32 sig_detect_con;
+	u32 reserved11[0x3];
+	u32 sig_detect_status;
+	u32 reserved12[0x3];
+	u32 sig_detect_clr;
+	u32 reserved13[0x17];
+	u32 uoc0_con0;
+	u32 reserved14[0x5];
+	u32 uoc1_con1;
+	u32 uoc1_con2;
+	u32 uoc1_con3;
+	u32 uoc1_con4;
+	u32 uoc1_con5;
+	u32 reserved15[0x3];
+	u32 uoc3_con0;
+	u32 uoc3_con1;
+	u32 uoc4_con0;
+	u32 uoc4_con1;
+	u32 reserved16[0xe];
+	u32 usbphy_con0;
+	u32 usbphy_con1;
+	u32 usbphy_con2;
+	u32 usbphy_con3;
+	u32 usbphy_con4;
+	u32 usbphy_con5;
+	u32 usbphy_con6;
+	u32 usbphy_con7;
+	u32 usbphy_con8;
+	u32 usbphy_con9;
+	u32 usbphy_con10;
+	u32 usbphy_con11;
+	u32 usbphy_con12;
+	u32 usbphy_con13;
+	u32 usbphy_con14;
+	u32 usbphy_con15;
+	u32 reserved17[0x10];
+	u32 pvtm_con0;
+	u32 pvtm_con1;
+	u32 pvtm_con2;
+	u32 pvtm_status0;
+	u32 pvtm_status1;
+	u32 pvtm_status2;
+	u32 reserved18[0x3a];
+	u32 io_vsel;
 };
 check_member(rk3368_grf, soc_con17, 0x444);
 check_member(rk3368_grf, ddrc0_con0, 0x600);
+check_member(rk3368_grf, io_vsel, 0x900);
 
 struct rk3368_pmu_grf {
 	u32 gpio0a_iomux;
@@ -103,6 +191,27 @@ struct rk3368_pmu_grf {
 };
 check_member(rk3368_pmu_grf, gpio0h_sr, 0x34);
 check_member(rk3368_pmu_grf, os_reg[0], 0x200);
+
+/* GRF_SOC_CON7 */
+enum {
+	RK3368_DPHY_TX0_RXMODE_SHIFT = 6,
+	RK3368_DPHY_TX0_RXMODE_MASK =
+	   0x1 << RK3368_DPHY_TX0_RXMODE_SHIFT,
+	RK3368_DPHY_TX0_RXMODE_EN = 1,
+	RK3368_DPHY_TX0_RXMODE_DIS = 0,
+
+	RK3368_DPHY_TX0_TXSTOPMODE_SHIFT = 7,
+	RK3368_DPHY_TX0_TXSTOPMODE_MASK =
+	   0xf << RK3368_DPHY_TX0_TXSTOPMODE_SHIFT,
+	RK3368_DPHY_TX0_TXSTOPMODE_EN = 0xf,
+	RK3368_DPHY_TX0_TXSTOPMODE_DIS = 0,
+
+	RK3368_DPHY_TX0_TURNDISABLE_SHIFT = 5,
+	RK3368_DPHY_TX0_TURNDISABLE_MASK =
+	   0x1 << RK3368_DPHY_TX0_TURNDISABLE_SHIFT,
+	RK3368_DPHY_TX0_TURNDISABLE_EN = 1,
+	RK3368_DPHY_TX0_TURNDISABLE_DIS = 0,
+};
 
 /*GRF_SOC_CON11/12/13*/
 enum {
