@@ -552,6 +552,22 @@ static void rk3368_gmac_set_to_rgmii(struct gmac_rockchip_plat *pdata)
 		     pdata->tx_delay << RK3368_CLK_TX_DL_CFG_GMAC_SHIFT);
 }
 
+static void rk3368_gmac_set_to_rmii(struct gmac_rockchip_plat *pdata)
+{
+	struct rk3368_grf *grf;
+	enum {
+		RK3368_GMAC_PHY_INTF_SEL_RMII = 1 << 11,
+		RK3368_GMAC_PHY_INTF_SEL_MASK = GENMASK(11, 9),
+		RK3368_RMII_MODE_MASK  = BIT(6),
+		RK3368_RMII_MODE       = BIT(6),
+	};
+
+	grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+	rk_clrsetreg(&grf->soc_con15,
+		     RK3368_RMII_MODE_MASK | RK3368_GMAC_PHY_INTF_SEL_MASK,
+		     RK3368_RMII_MODE | RK3368_GMAC_PHY_INTF_SEL_RMII);
+}
+
 static void rk3399_gmac_set_to_rgmii(struct gmac_rockchip_plat *pdata)
 {
 	struct rk3399_grf_regs *grf;
@@ -755,6 +771,7 @@ const struct rk_gmac_ops rk3328_gmac_ops = {
 const struct rk_gmac_ops rk3368_gmac_ops = {
 	.fix_mac_speed = rk3368_gmac_fix_mac_speed,
 	.set_to_rgmii = rk3368_gmac_set_to_rgmii,
+	.set_to_rmii = rk3368_gmac_set_to_rmii,
 };
 
 const struct rk_gmac_ops rk3399_gmac_ops = {
