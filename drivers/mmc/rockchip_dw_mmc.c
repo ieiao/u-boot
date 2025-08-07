@@ -132,7 +132,7 @@ static int rockchip_dwmmc_probe(struct udevice *dev)
 
 	ret = clk_get_by_phandle(dev, &dtplat->clocks[1], &priv->clk);
 #else
-	ret = clk_get_by_index(dev, 1, &priv->clk);
+	ret = clk_get_by_index(dev, 0, &priv->clk);
 #endif
 	if (ret < 0 && ret != -ENOSYS)
 		return log_msg_ret("clk", ret);
