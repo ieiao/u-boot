@@ -8,4 +8,14 @@
 
 #include <configs/rk3368_common.h>
 
+#undef CFG_EXTRA_ENV_SETTINGS
+#define CFG_EXTRA_ENV_SETTINGS \
+	"fdtfile=" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0" \
+	ENV_MEM_LAYOUT_SETTINGS \
+	"boot_targets=" BOOT_TARGETS "\0" \
+	"splashsource=mmc_fs\0" \
+	"splashdevpart=0:6\0" \
+	"splashpos=m,m\0" \
+	"splashimage=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+
 #endif
