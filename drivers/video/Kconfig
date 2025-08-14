@@ -596,6 +596,13 @@ config VIDEO_LCD_RAYDIUM_RM68200
 	Say Y here if you want to enable support for Raydium RM68200
 	720x1280 DSI video mode panel.
 
+config VIDEO_LCD_RM72014
+	bool "RM72014 DSI LCD panel support"
+	select VIDEO_MIPI_DSI
+	help
+	Say Y here if you want to enable support for unknown RM72014
+	800x1280 DSI video mode panel.
+
 config VIDEO_LCD_RENESAS_R61307
 	tristate "Renesas R61307 DSI video mode panel"
 	depends on PANEL && BACKLIGHT
