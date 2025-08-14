@@ -165,9 +165,11 @@ static ulong rk3368_mmc_get_clk(struct rk3368_cru *cru, uint clk_id)
 
 	switch (clk_id) {
 	case HCLK_SDMMC:
+	case SCLK_SDMMC:
 		con_id = 50;
 		break;
 	case HCLK_EMMC:
+	case SCLK_EMMC:
 		con_id = 51;
 		break;
 	case SCLK_SDIO0:
@@ -262,9 +264,11 @@ static ulong rk3368_mmc_set_clk(struct clk *clk, ulong rate)
 
 	switch (clk_id) {
 	case HCLK_SDMMC:
+	case SCLK_SDMMC:
 		con_id = 50;
 		break;
 	case HCLK_EMMC:
+	case SCLK_EMMC:
 		con_id = 51;
 		break;
 	case SCLK_SDIO0:
@@ -559,6 +563,8 @@ static ulong rk3368_clk_get_rate(struct clk *clk)
 #if !IS_ENABLED(CONFIG_XPL_BUILD) || CONFIG_IS_ENABLED(MMC)
 	case HCLK_SDMMC:
 	case HCLK_EMMC:
+	case SCLK_SDMMC:
+	case SCLK_EMMC:
 		rate = rk3368_mmc_get_clk(priv->cru, clk->id);
 		break;
 #endif
@@ -597,6 +603,8 @@ static ulong rk3368_clk_set_rate(struct clk *clk, ulong rate)
 #if !IS_ENABLED(CONFIG_XPL_BUILD) || CONFIG_IS_ENABLED(MMC)
 	case HCLK_SDMMC:
 	case HCLK_EMMC:
+	case SCLK_SDMMC:
+	case SCLK_EMMC:
 		ret = rk3368_mmc_set_clk(clk, rate);
 		break;
 #endif
