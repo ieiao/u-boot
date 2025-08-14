@@ -453,6 +453,82 @@ static ulong rk3368_saradc_set_clk(struct rk3368_cru *cru, uint hz)
 	return rk3368_saradc_get_clk(cru);
 }
 
+#if !IS_ENABLED(CONFIG_XPL_BUILD)
+static ulong rk3368_bus_get_clk(struct rk3368_cru *cru, ulong clk_id)
+{
+	u32 div, con, parent;
+
+	switch (clk_id) {
+	case ACLK_BUS:
+		con = readl(&cru->clksel_con[8]);
+		div = (con & ACLK_BUS_DIV_CON_MASK) >> ACLK_BUS_DIV_CON_SHIFT;
+		parent = rkclk_pll_get_rate(cru, GPLL);
+		break;
+	case HCLK_BUS:
+		con = readl(&cru->clksel_con[8]);
+		div = (con & HCLK_BUS_DIV_CON_MASK) >> HCLK_BUS_DIV_CON_SHIFT;
+		parent = rk3368_bus_get_clk(cru, ACLK_BUS);
+		break;
+	case PCLK_BUS:
+	case PCLK_PWM0:
+	case PCLK_PWM1:
+	case PCLK_I2C0:
+	case PCLK_I2C1:
+		con = readl(&cru->clksel_con[8]);
+		div = (con & PCLK_BUS_DIV_CON_MASK) >> PCLK_BUS_DIV_CON_SHIFT;
+		parent = rk3368_bus_get_clk(cru, ACLK_BUS);
+		break;
+	default:
+		return -ENOENT;
+	}
+
+	return DIV_TO_RATE(parent, div);
+}
+
+static ulong rk3368_bus_set_clk(struct rk3368_cru *cru,
+				ulong clk_id, ulong hz)
+{
+	int src_clk_div;
+
+	/*
+	 * select gpll as pd_bus bus clock source and
+	 * set up dependent divisors for PCLK/HCLK and ACLK clocks.
+	 */
+	switch (clk_id) {
+	case ACLK_BUS:
+		src_clk_div = DIV_ROUND_UP(rkclk_pll_get_rate(cru, GPLL), hz);
+		assert(src_clk_div - 1 < 31);
+		rk_clrsetreg(&cru->clksel_con[8],
+			     CLK_BUS_PLL_SEL_MASK | ACLK_BUS_DIV_CON_MASK,
+			     CLK_BUS_PLL_SEL_GPLL << CLK_BUS_PLL_SEL_SHIFT |
+			     (src_clk_div - 1) << ACLK_BUS_DIV_CON_SHIFT);
+		break;
+	case HCLK_BUS:
+		src_clk_div = DIV_ROUND_UP(rk3368_bus_get_clk(cru,
+							      ACLK_BUS),
+					   hz);
+		assert(src_clk_div - 1 < 3);
+		rk_clrsetreg(&cru->clksel_con[8],
+			     HCLK_BUS_DIV_CON_MASK,
+			     (src_clk_div - 1) << HCLK_BUS_DIV_CON_SHIFT);
+		break;
+	case PCLK_BUS:
+		src_clk_div = DIV_ROUND_UP(rk3368_bus_get_clk(cru,
+							      ACLK_BUS),
+					   hz);
+		assert(src_clk_div - 1 < 3);
+		rk_clrsetreg(&cru->clksel_con[8],
+			     PCLK_BUS_DIV_CON_MASK,
+			     (src_clk_div - 1) << PCLK_BUS_DIV_CON_SHIFT);
+		break;
+	default:
+		printf("do not support this bus freq\n");
+		return -EINVAL;
+	}
+	return rk3368_bus_get_clk(cru, clk_id);
+}
+#endif
+
 static ulong rk3368_clk_get_rate(struct clk *clk)
 {
 	struct rk3368_clk_priv *priv = dev_get_priv(clk->dev);
@@ -469,6 +545,17 @@ static ulong rk3368_clk_get_rate(struct clk *clk)
 	case SCLK_SPI0 ... SCLK_SPI2:
 		rate = rk3368_spi_get_clk(priv->cru, clk->id);
 		break;
+#if !IS_ENABLED(CONFIG_XPL_BUILD)
+	case ACLK_BUS:
+	case HCLK_BUS:
+	case PCLK_BUS:
+	case PCLK_PWM0:
+	case PCLK_PWM1:
+	case PCLK_I2C0:
+	case PCLK_I2C1:
+		rate = rk3368_bus_get_clk(priv->cru, clk->id);
+		break;
+#endif
 #if !IS_ENABLED(CONFIG_XPL_BUILD) || CONFIG_IS_ENABLED(MMC)
 	case HCLK_SDMMC:
 	case HCLK_EMMC:
@@ -498,6 +585,13 @@ static ulong rk3368_clk_set_rate(struct clk *clk, ulong rate)
 #if IS_ENABLED(CONFIG_TPL_BUILD)
 	case CLK_DDR:
 		ret = rk3368_ddr_set_clk(priv->cru, rate);
+		break;
+#endif
+#if !IS_ENABLED(CONFIG_XPL_BUILD)
+	case ACLK_BUS:
+	case HCLK_BUS:
+	case PCLK_BUS:
+		rate = rk3368_bus_set_clk(priv->cru, clk->id, rate);
 		break;
 #endif
 #if !IS_ENABLED(CONFIG_XPL_BUILD) || CONFIG_IS_ENABLED(MMC)
